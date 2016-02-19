@@ -100,6 +100,23 @@ class ServiceProviderManager {
         return $resultOfInsertion;
     }
 
+    /**
+     * Updates a service provider document and updates the collection.
+     *
+     * @param string $username the username of the service provider who is logged in and used to find the document to be
+     *                         updated.
+     * @param string $password the new password of the service provider used for login.
+     * @param string $firstName the new first name of the service provider.
+     * @param string $lastName the new last name of the service provider.
+     * @param string $streetAddress the new street address of the service provider's business.
+     * @param string $city the new city that the service provider's business is located in.
+     * @param string $state the new state that the service provider's business is located in.
+     * @param int $zipCode the new five digit zip code of the service provider's business.
+     * @param string $baseService the new base service that the service provider provides.
+     * @param array $subServices the new specific services that the service provider provides within the base service.
+     * @param string $description the new information about the service that the service provider provides.
+     * @return array notifies the client side if the update was successful.
+     */
     public function updateServiceProvider($username, $password, $firstName, $lastName, $streetAddress, $city,
                                           $state, $zipCode, $baseService, $subServices = array(), $description) {
         global $resultOfInsertion;
@@ -116,7 +133,19 @@ class ServiceProviderManager {
                                 'subservices' => $subServices,
                                 'description' => $description);
 
+        $findQuery = array('username' => $username);
+
         $mongoDBDriver = new MongoDBDriver();
+
+        if ($mongoDBDriver->updateDocument($findQuery, $updateDocument)) {
+            $resultOfInsertion = array('success' => 1,
+                                       'message' => "Update success");
+        } else {
+            $resultOfInsertion = array('success' => 0,
+                                       'message' => "Update failed");
+        }
+
+        return $resultOfInsertion;
     }
 
     public function deleteServiceProvider() {
