@@ -78,7 +78,7 @@ class ServiceProviderManager {
      * @return array notifies the client side if service providers were found and the list of service providers.
      */
     public function findServiceProviders($zipCode, $baseService, $subServices) {
-        global $resultOfInsertion;
+        global $resultOfQuery;
 
         $findQuery = array('zipcode' => $zipCode,
                            'baseservice' => $baseService,
@@ -89,15 +89,18 @@ class ServiceProviderManager {
         $cursor = $mongoDBDriver->findDocument($findQuery);
 
         if ($cursor == null) {
-            $resultOfInsertion = array('success' => 0,
-                                       'message' => "Query error");
+            $resultOfQuery = array('success' => 0,
+                                   'message' => "Connection error");
+        } else if ($cursor->count() == 0) {
+            $resultOfQuery = array('success' => 0,
+                                   'message' => "No service providers found");
         } else {
-            $resultOfInsertion = array('success' => 1,
-                                       'message' => "Service providers found",
-                                        'serviceproviders' => $cursor);
+            $resultOfQuery = array('success' => 1,
+                                   'message' => "Service providers found",
+                                   'serviceproviders' => $cursor);
         }
 
-        return $resultOfInsertion;
+        return $resultOfQuery;
     }
 
     /**
@@ -119,7 +122,7 @@ class ServiceProviderManager {
      */
     public function updateServiceProvider($username, $password, $firstName, $lastName, $streetAddress, $city,
                                           $state, $zipCode, $baseService, $subServices = array(), $description) {
-        global $resultOfInsertion;
+        global $resultOfUpdate;
 
         $updateDocument = array('username' => $username,
                                 'password' => $password,
@@ -138,17 +141,68 @@ class ServiceProviderManager {
         $mongoDBDriver = new MongoDBDriver();
 
         if ($mongoDBDriver->updateDocument($findQuery, $updateDocument)) {
-            $resultOfInsertion = array('success' => 1,
-                                       'message' => "Update success");
+            $resultOfUpdate = array('success' => 1,
+                                    'message' => "Update success");
         } else {
-            $resultOfInsertion = array('success' => 0,
-                                       'message' => "Update failed");
+            $resultOfUpdate = array('success' => 0,
+                                    'message' => "Update failed");
         }
 
-        return $resultOfInsertion;
+        return $resultOfUpdate;
     }
 
-    public function deleteServiceProvider() {
+    /**
+     * Deletes a service provider document from the collection.
+     *
+     * @param string $username the username of the service provider used to locate the document in the collection.
+     * @return array notifies the client side if the deletion was successful.
+     */
+    public function deleteServiceProvider($username) {
+        global $resultOfDeletion;
 
+        $findQuery = array('username' => $username);
+
+        $mongoDBDriver = new MongoDBDriver();
+
+        if ($mongoDBDriver->deleteDocument($findQuery)) {
+            $resultOfDeletion = array('success' => 1,
+                                      'message' => "Deletion success");
+        } else {
+            $resultOfDeletion = array('success' => 0,
+                                      'message' => "Deletion failed");
+        }
+
+        return $resultOfDeletion;
+    }
+
+    /**
+     * Checks to see if the service provider's entered credentials exists in the collection.
+     *
+     * @param string $username the username that the service provider entered.
+     * @param string $password the password that the service provider entered.
+     * @return array notifies the client side if the service provider has a document in the collection.
+     */
+    public function authenticateServiceProvider($username, $password) {
+        global $resultOfExistence;
+
+        $findQuery = array('username' => $username,
+                           'password' => $password);
+
+        $mongoDBDriver = new MongoDBDriver();
+
+        $cursor = $mongoDBDriver->findDocument($findQuery);
+
+        if ($cursor->count() == 0){
+            $resultOfExistence = array('success' => 0,
+                                       'message' => "Invalid login");
+        } else if ($cursor == null) {
+            $resultOfExistence = array('success' => 0,
+                                       'message' => "Connection error");
+        } else {
+            $resultOfExistence = array('success' => 1,
+                                       'message' => "User exists");
+        }
+
+        return $resultOfExistence;
     }
 }
