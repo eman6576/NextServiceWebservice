@@ -1,6 +1,7 @@
 <?php
 
 include "MongoDBDriver.php";
+include "HashUtility.php";
 
 /**
  * Manages service providers information and creates JSON arrays to send back to the client side.
@@ -38,8 +39,12 @@ class ServiceProviderManager {
 
         if ($cursor != null) {
             if ($cursor->count() == 0) {
+                $hashUtility = new HashUtility();
+
+                $hashedPassword = $hashUtility->hash($password);
+
                 $document = array('username' => $username,
-                                  'password' => $password,
+                                  'password' => $hashedPassword,
                                   'firstname' => $firstName,
                                   'lastname' => $lastName,
                                   'streetaddress' => $streetAddress,
@@ -124,8 +129,12 @@ class ServiceProviderManager {
                                           $state, $zipCode, $baseService, $subServices = array(), $description) {
         global $resultOfUpdate;
 
+        $hashUtility = new HashUtility();
+
+        $hashedPassword = $hashUtility->hash($password);
+
         $updateDocument = array('username' => $username,
-                                'password' => $password,
+                                'password' => $hashedPassword,
                                 'firstname' => $firstName,
                                 'lastname' => $lastName,
                                 'streetaddress' => $streetAddress,
@@ -185,8 +194,7 @@ class ServiceProviderManager {
     public function authenticateServiceProvider($username, $password) {
         global $resultOfExistence;
 
-        $findQuery = array('username' => $username,
-                           'password' => $password);
+        $findQuery = array('username' => $username);
 
         $mongoDBDriver = new MongoDBDriver();
 
@@ -199,8 +207,19 @@ class ServiceProviderManager {
             $resultOfExistence = array('success' => 0,
                                        'message' => "Connection error");
         } else {
-            $resultOfExistence = array('success' => 1,
-                                       'message' => "User exists");
+            $document = $cursor->current();
+
+            $hashedPassword = $document['password'];
+
+            $hashUtility = new HashUtility();
+
+            if ($hashUtility->checkPassword($hashedPassword, $password)) {
+                $resultOfExistence = array('success' => 1,
+                                           'message' => "User exists");
+            } else {
+                $resultOfExistence = array('success' => 0,
+                                           'message' => "Invalid login");
+            }
         }
 
         return $resultOfExistence;
